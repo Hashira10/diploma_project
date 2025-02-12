@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Sender, RecipientGroup, Recipient
+from .models import Sender, RecipientGroup, Recipient, Message
 
 class SenderSerializer(serializers.ModelSerializer):
     class Meta:
@@ -27,5 +27,11 @@ class RecipientGroupSerializer(serializers.ModelSerializer):
             group.recipients.add(recipient)
 
         return group
+
+class MessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = ['id', 'sender', 'recipient_group', 'subject', 'body', 'link', 'sent_at']
+
 
 
