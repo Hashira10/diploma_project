@@ -1,47 +1,91 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { Link } from 'react-router-dom';
-import './SenderList.css';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { Link } from "react-router-dom";
+import {
+  Container,
+  Paper,
+  Typography,
+  List,
+  ListItem,
+  ListItemText,
+  IconButton,
+  Button,
+  Snackbar,
+  Alert,
+} from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
 
 const SenderList = () => {
   const [senders, setSenders] = useState([]);
+  const [message, setMessage] = useState({ text: "", severity: "info" });
+  const [openSnackbar, setOpenSnackbar] = useState(false);
 
   useEffect(() => {
-    axios.get('http://127.0.0.1:8000/api/senders/')
-      .then(response => {
-        setSenders(response.data);
-      })
-      .catch(error => {
-        console.error('Error fetching senders:', error);
+    axios
+      .get("http://127.0.0.1:8000/api/senders/")
+      .then((response) => setSenders(response.data))
+      .catch((error) => {
+        console.error("Error fetching senders:", error);
+        setMessage({ text: "Failed to load senders.", severity: "error" });
+        setOpenSnackbar(true);
       });
   }, []);
 
   const handleDeleteSender = (senderId) => {
-    axios.delete(`http://127.0.0.1:8000/api/senders/${senderId}/`)
+    axios
+      .delete(`http://127.0.0.1:8000/api/senders/${senderId}/`)
       .then(() => {
-        setSenders(senders.filter(sender => sender.id !== senderId)); // Обновляем список после удаления
+        setSenders(senders.filter((sender) => sender.id !== senderId));
+        setMessage({ text: "Sender deleted successfully!", severity: "success" });
+        setOpenSnackbar(true);
       })
-      .catch(error => {
-        console.error('Error deleting sender:', error);
+      .catch((error) => {
+        console.error("Error deleting sender:", error);
+        setMessage({ text: "Failed to delete sender.", severity: "error" });
+        setOpenSnackbar(true);
       });
   };
 
   return (
-    <div>
-      <h2>Sender List</h2>
-      <ul>
-        {senders.map(sender => (
-          <li key={sender.id}>
-            {sender.smtp_username} - {sender.smtp_host}
-            <button onClick={() => handleDeleteSender(sender.id)}>Delete</button>
-            <Link to={`/edit-sender/${sender.id}`}>Edit</Link>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <Container maxWidth="md">
+      <Paper elevation={3} sx={{ padding: 3, marginTop: 4 }}>
+        <Typography variant="h5" gutterBottom>
+          Sender List
+        </Typography>
+
+        <List>
+          {senders.map((sender) => (
+            <ListItem key={sender.id} divider>
+              <ListItemText
+                primary={sender.smtp_username}
+                secondary={sender.smtp_host}
+              />
+              <IconButton
+                onClick={() => handleDeleteSender(sender.id)}
+                color="error"
+                sx={{ marginRight: 2 }}
+              >
+                <DeleteIcon />
+              </IconButton>
+              <Link to={`/edit-sender/${sender.id}`}>
+                <Button variant="outlined" color="primary" size="small">
+                  <EditIcon /> Edit
+                </Button>
+              </Link>
+            </ListItem>
+          ))}
+        </List>
+      </Paper>
+
+      {/* Snackbar Notification */}
+      <Snackbar open={openSnackbar} autoHideDuration={3000} onClose={() => setOpenSnackbar(false)}>
+        <Alert severity={message.severity} onClose={() => setOpenSnackbar(false)}>
+          {message.text}
+        </Alert>
+      </Snackbar>
+    </Container>
   );
 };
 
 export default SenderList;
-
-

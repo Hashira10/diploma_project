@@ -1,12 +1,26 @@
 import React, { useState } from "react";
 import axios from "axios";
-import './AddRecipientGroupForm.css';
+import {
+  Container,
+  Paper,
+  Typography,
+  TextField,
+  Button,
+  Grid,
+  Snackbar,
+  Alert,
+  IconButton
+} from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
+import AddCircleIcon from "@mui/icons-material/AddCircle";
 
 const AddRecipientGroupForm = () => {
   const [groupName, setGroupName] = useState("");
   const [recipients, setRecipients] = useState([
     { firstName: "", lastName: "", email: "", position: "" },
   ]);
+  const [message, setMessage] = useState({ text: "", severity: "info" });
+  const [openSnackbar, setOpenSnackbar] = useState(false);
 
   const handleRecipientChange = (index, field, value) => {
     const updatedRecipients = [...recipients];
@@ -15,10 +29,7 @@ const AddRecipientGroupForm = () => {
   };
 
   const addRecipient = () => {
-    setRecipients([
-      ...recipients,
-      { firstName: "", lastName: "", email: "", position: "" },
-    ]);
+    setRecipients([...recipients, { firstName: "", lastName: "", email: "", position: "" }]);
   };
 
   const removeRecipient = (index) => {
@@ -40,85 +51,108 @@ const AddRecipientGroupForm = () => {
 
     try {
       await axios.post("http://127.0.0.1:8000/api/recipient_groups/", groupData);
-      alert("Recipient group added successfully!");
+      setMessage({ text: "Recipient group added successfully!", severity: "success" });
       setGroupName("");
       setRecipients([{ firstName: "", lastName: "", email: "", position: "" }]);
     } catch (error) {
       console.error("Error adding recipient group:", error.response?.data || error.message);
-      alert("Failed to add recipient group");
+      setMessage({ text: "Failed to add recipient group.", severity: "error" });
     }
+    setOpenSnackbar(true);
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h2>Add Recipient Group</h2>
+    <Container maxWidth="sm">
+      <Paper elevation={3} sx={{ padding: 3, marginTop: 4 }}>
+        <Typography variant="h5" gutterBottom>
+          Add Recipient Group
+        </Typography>
 
-      <div>
-        <label>Group Name:</label>
-        <input
-          type="text"
-          value={groupName}
-          onChange={(e) => setGroupName(e.target.value)}
-          required
-        />
-      </div>
-
-      <h3>Recipients:</h3>
-      {recipients.map((recipient, index) => (
-        <div key={index} style={{ border: "1px solid #ccc", padding: "10px", marginBottom: "10px" }}>
-          <label>First Name:</label>
-          <input
-            type="text"
-            value={recipient.firstName}
-            onChange={(e) =>
-              handleRecipientChange(index, "firstName", e.target.value)
-            }
+        <form onSubmit={handleSubmit}>
+          <TextField
+            label="Group Name"
+            fullWidth
+            value={groupName}
+            onChange={(e) => setGroupName(e.target.value)}
             required
+            sx={{ marginBottom: 2 }}
           />
 
-          <label>Last Name:</label>
-          <input
-            type="text"
-            value={recipient.lastName}
-            onChange={(e) =>
-              handleRecipientChange(index, "lastName", e.target.value)
-            }
-            required
-          />
+          <Typography variant="h6">Recipients</Typography>
 
-          <label>Email:</label>
-          <input
-            type="email"
-            value={recipient.email}
-            onChange={(e) =>
-              handleRecipientChange(index, "email", e.target.value)
-            }
-            required
-          />
+          {recipients.map((recipient, index) => (
+            <Paper key={index} elevation={2} sx={{ padding: 2, marginBottom: 2 }}>
+              <Grid container spacing={2}>
+                <Grid item xs={6}>
+                  <TextField
+                    label="First Name"
+                    fullWidth
+                    value={recipient.firstName}
+                    onChange={(e) => handleRecipientChange(index, "firstName", e.target.value)}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    label="Last Name"
+                    fullWidth
+                    value={recipient.lastName}
+                    onChange={(e) => handleRecipientChange(index, "lastName", e.target.value)}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Email"
+                    type="email"
+                    fullWidth
+                    value={recipient.email}
+                    onChange={(e) => handleRecipientChange(index, "email", e.target.value)}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={10}>
+                  <TextField
+                    label="Position"
+                    fullWidth
+                    value={recipient.position}
+                    onChange={(e) => handleRecipientChange(index, "position", e.target.value)}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={2} sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <IconButton onClick={() => removeRecipient(index)} color="error">
+                    <DeleteIcon />
+                  </IconButton>
+                </Grid>
+              </Grid>
+            </Paper>
+          ))}
 
-          <label>Position:</label>
-          <input
-            type="text"
-            value={recipient.position}
-            onChange={(e) =>
-              handleRecipientChange(index, "position", e.target.value)
-            }
-            required
-          />
+          <Button
+            variant="outlined"
+            startIcon={<AddCircleIcon />}
+            onClick={addRecipient}
+            sx={{ marginTop: 2 }}
+          >
+            Add Recipient
+          </Button>
 
-          <button type="button" onClick={() => removeRecipient(index)}>
-            Remove
-          </button>
-        </div>
-      ))}
+          <Button type="submit" variant="contained" color="primary" fullWidth sx={{ marginTop: 3 }}>
+            Submit
+          </Button>
+        </form>
+      </Paper>
 
-      <button type="button" onClick={addRecipient}>
-        Add Recipient
-      </button>
-
-      <button type="submit">Submit</button>
-    </form>
+      {/* Snackbar Notification */}
+      <Snackbar open={openSnackbar} autoHideDuration={3000} onClose={() => setOpenSnackbar(false)}>
+        <Alert severity={message.severity} onClose={() => setOpenSnackbar(false)}>
+          {message.text}
+        </Alert>
+      </Snackbar>
+    </Container>
   );
 };
 
 export default AddRecipientGroupForm;
+

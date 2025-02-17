@@ -7,7 +7,8 @@ import EditSenderForm from "./components/EditSenderForm";
 import RecipientGroupList from "./components/RecipientGroupList";
 import RecipientList from "./components/RecipientList";
 import EditRecipientForm from "./components/EditRecipientForm";
-import SendMessageForm from "./components/SendMessageForm"; // Импортируем новый компонент
+import SendMessageForm from "./components/SendMessageForm"; 
+import Report from "./components/Report";
 import "./App.css";
 
 const App = () => {
@@ -21,7 +22,8 @@ const App = () => {
             <li><a href="/senders">Sender List</a></li>
             <li><a href="/add-recipient-group">Add Recipient Group</a></li>
             <li><a href="/recipient-groups">Recipient Group List</a></li>
-            <li><a href="/send-message">Send Message</a></li> {/* Новый пункт меню */}
+            <li><a href="/send-message">Send Message</a></li> 
+            <li><a href="/report">Report</a></li>
           </ul>
         </nav>
 
@@ -33,7 +35,8 @@ const App = () => {
           <Route path="/recipient-groups" element={<RecipientGroupList />} />
           <Route path="/recipient-groups/:groupId" element={<RecipientList />} />
           <Route path="/edit-recipient/:recipientId" element={<EditRecipientForm />} />
-          <Route path="/send-message" element={<SendMessageForm />} /> {/* Добавленный маршрут */}
+          <Route path="/send-message" element={<SendMessageForm />} /> 
+          <Route path="/report" element={<Report />} />
         </Routes>
       </div>
     </Router>

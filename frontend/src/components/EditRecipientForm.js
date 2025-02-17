@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import './EditRecipientForm.css';
 
 const EditRecipientForm = () => {
   const { recipientId } = useParams(); // Получаем ID получателя из параметров URL
