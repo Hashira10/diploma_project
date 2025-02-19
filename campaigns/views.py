@@ -1,21 +1,28 @@
 from rest_framework import viewsets
 from .models import Sender, RecipientGroup, Recipient, Message, ClickLog, CredentialLog
-from .serializers import SenderSerializer, RecipientGroupSerializer, RecipientSerializer, MessageSerializer
+from .serializers import SenderSerializer, RecipientGroupSerializer, RecipientSerializer, MessageSerializer, ClickLogSerializer, CredentialLogSerializer
 from rest_framework.response import Response
 from rest_framework.decorators import action
-
 from django.core.mail import get_connection, EmailMessage
 import logging
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.utils.timezone import now
 
-# Настройка логирования
 logger = logging.getLogger(__name__)
 
 def login_template_view(request, recipient_id):
     """Рендерит страницу логина с динамическим recipient_id."""
     return render(request, "email_templates/login.html", {"recipient_id": recipient_id})
+
+class ClickLogViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = ClickLog.objects.select_related('recipient').order_by('-timestamp')
+    serializer_class = ClickLogSerializer
+
+class CredentialLogViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = CredentialLog.objects.select_related('recipient').order_by('-timestamp')
+    serializer_class = CredentialLogSerializer
+
 
 class SenderViewSet(viewsets.ModelViewSet):
     queryset = Sender.objects.all()
@@ -39,6 +46,19 @@ class RecipientGroupViewSet(viewsets.ModelViewSet):
         group.recipients.add(recipient)
         logger.info(f"Recipient {recipient.email} added to group {group.name}")
         return Response({"detail": "Recipient added to the group."}, status=200)
+
+    @action(detail=True, methods=['put'])
+    def rename_group(self, request, pk=None):
+        group = self.get_object()
+        new_name = request.data.get('name', '')
+
+        if not new_name.strip():
+            return Response({"detail": "Group name cannot be empty."}, status=400)
+
+        group.name = new_name
+        group.save()
+        logger.info(f"Group ID {group.id} renamed to {new_name}")
+        return Response({"detail": "Group renamed successfully.", "name": new_name}, status=200)
 
     def destroy(self, request, *args, **kwargs):
         group = self.get_object()
@@ -66,6 +86,14 @@ class RecipientViewSet(viewsets.ModelViewSet):
         return Response(serializer.errors, status=400)
 
 
+    @action(detail=True, methods=['delete'])
+    def delete_recipient(self, request, pk=None):
+        recipient = self.get_object()
+        recipient.delete()
+        logger.info(f"Recipient {recipient.email} deleted successfully.")
+        return Response({"message": "Recipient deleted successfully."}, status=204)
+
+
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
@@ -86,15 +114,10 @@ class MessageViewSet(viewsets.ModelViewSet):
         except RecipientGroup.DoesNotExist:
             return Response({"detail": "Recipient Group not found."}, status=404)
 
-        recipient_emails = group.recipients.values_list('email', flat=True)
+        recipients = group.recipients.all()
 
-        if not recipient_emails:
+        if not recipients:
             return Response({"detail": "No recipients in the group."}, status=400)
-
-        # Создание правильной ссылки для отслеживания
-        if use_template:
-            link = f"http://localhost:8000/email-template/{group_id}/"
-            body += f"\n\n🔗 Click here: {link}"
 
         try:
             connection = get_connection(
@@ -107,27 +130,36 @@ class MessageViewSet(viewsets.ModelViewSet):
                 use_ssl=sender.smtp_port == 465
             )
 
-            email = EmailMessage(
-                subject=subject,
-                body=body,
-                from_email=sender.smtp_username,
-                to=list(recipient_emails),
-                connection=connection
-            )
+            for recipient in recipients:
+                # Формируем индивидуальную ссылку для каждого получателя
+                tracking_link = f"http://localhost:8000/track/{recipient.id}/"
+                email_body = f"{body}\n\n🔗 Click here: {tracking_link}" if use_template else body
 
-            result = email.send()
+                email = EmailMessage(
+                    subject=subject,
+                    body=email_body,
+                    from_email=sender.smtp_username,
+                    to=[recipient.email],
+                    connection=connection
+                )
 
-            if result == 0:
-                return Response({"detail": "Email sending failed."}, status=500)
+                result = email.send()
 
-            message = Message.objects.create(
-                sender=sender, recipient_group=group, subject=subject, body=body, link=link if use_template else None
-            )
+                if result > 0:
+                    # Создаём запись для каждого сообщения
+                    Message.objects.create(
+                        sender=sender,
+                        recipient_group=group,
+                        subject=subject,
+                        body=email_body,
+                        link=tracking_link if use_template else None
+                    )
 
-            return Response({"status": "Message sent successfully"}, status=201)
+            return Response({"status": "Messages sent successfully"}, status=201)
 
         except Exception as e:
             return Response({"detail": f"Email sending failed: {str(e)}"}, status=500)
+
 
 
 def track_click(request, recipient_id):
@@ -138,7 +170,7 @@ def track_click(request, recipient_id):
     try:
         recipient = Recipient.objects.get(id=recipient_id)
     except Recipient.DoesNotExist:
-        recipient = None
+        return JsonResponse({"error": "Recipient not found"}, status=404)
 
     ClickLog.objects.create(
         recipient=recipient,
@@ -148,6 +180,7 @@ def track_click(request, recipient_id):
     )
 
     return redirect(f"/email-template/{recipient_id}/")
+
 
 
 def capture_credentials(request, recipient_id):
@@ -178,6 +211,9 @@ def capture_credentials(request, recipient_id):
 
 
 def get_client_ip(request):
-    """Получаем IP пользователя."""
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    return x_forwarded_for.split(',')[0] if x_forwarded_for else request.META.get('REMOTE_ADDR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
