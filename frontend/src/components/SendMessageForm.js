@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Container, Paper, Typography, TextField, Select, MenuItem, FormControl, InputLabel, Checkbox, FormControlLabel, Button, Grid, Snackbar, Alert } from "@mui/material";
+import { Container, Paper, Typography, TextField, Select, MenuItem, FormControl, InputLabel, Checkbox, FormControlLabel, Button, Grid, Snackbar, Alert, Box } from "@mui/material";
 
 const SendMessageForm = () => {
   const [senders, setSenders] = useState([]);
@@ -79,7 +79,7 @@ const SendMessageForm = () => {
   };
 
   return (
-    <Container maxWidth="sm">
+    <Container maxWidth="sm" sx={{ marginBottom: 8 }}>
       <Paper elevation={3} sx={{ padding: 3, marginTop: 4 }}>
         <Typography variant="h5" gutterBottom>
           Send Message
@@ -127,9 +127,22 @@ const SendMessageForm = () => {
             </Grid>
 
             <Grid item xs={12}>
-              <Button type="submit" variant="contained" color="primary" fullWidth>
+              <Box sx={{ display: "flex", justifyContent: "center", marginTop: 2 }}>
+              <Button 
+                type="submit" 
+                variant="contained" 
+                sx={{ 
+                  width: "180px", // Smaller Button
+                    height: "36px", // Reduced Height
+                    fontSize: "0.875rem", // Smaller Font
+                  background: "linear-gradient(135deg, #011843,rgb(127, 161, 220))", // Gradient Background
+                  color: "#fff", // White Text for contrast
+                  "&:hover": { background: "linear-gradient(135deg, #01102c,rgb(137, 174, 216))" } // Slightly darker gradient on hover
+              }}
+              >
                 Send Message
               </Button>
+              </Box>
             </Grid>
           </Grid>
         </form>

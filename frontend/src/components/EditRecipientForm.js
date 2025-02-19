@@ -1,27 +1,41 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { useParams, useNavigate } from "react-router-dom";
+import {
+  Container,
+  Paper,
+  Typography,
+  TextField,
+  Button,
+  Snackbar,
+  Alert,
+  Grid,
+} from "@mui/material";
 
 const EditRecipientForm = () => {
-  const { recipientId } = useParams(); // Получаем ID получателя из параметров URL
+  const { recipientId } = useParams();
   const navigate = useNavigate();
   const [recipientData, setRecipientData] = useState({
-    first_name: '',
-    last_name: '',
-    email: '',
-    position: ''
+    first_name: "",
+    last_name: "",
+    email: "",
+    position: "",
   });
+  const [message, setMessage] = useState({ text: "", severity: "info" });
+  const [openSnackbar, setOpenSnackbar] = useState(false);
 
   useEffect(() => {
-    axios.get(`http://127.0.0.1:8000/api/recipients/${recipientId}/`)
-      .then(response => {
+    axios
+      .get(`http://127.0.0.1:8000/api/recipients/${recipientId}/`)
+      .then((response) => {
         setRecipientData(response.data);
       })
-      .catch(error => {
-        console.error('Error fetching recipient data:', error);
+      .catch((error) => {
+        console.error("Error fetching recipient data:", error);
+        setMessage({ text: "Error fetching recipient data", severity: "error" });
+        setOpenSnackbar(true);
       });
-  }, [recipientId]); // Эта зависимость обновит данные при изменении recipientId
-  
+  }, [recipientId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -30,50 +44,118 @@ const EditRecipientForm = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Отправляем обновленные данные
-    axios.put(`http://127.0.0.1:8000/api/recipients/${recipientId}/`, recipientData)
-        .then(() => {
-            navigate('/recipient-groups'); // Переход на страницу групп после сохранения
-        })
-        .catch(error => {
-            console.error('Error updating recipient:', error);
-        });
-
+    axios
+      .put(`http://127.0.0.1:8000/api/recipients/${recipientId}/`, recipientData)
+      .then(() => {
+        setMessage({ text: "Recipient updated successfully!", severity: "success" });
+        setOpenSnackbar(true);
+        setTimeout(() => navigate("/recipient-groups"), 1500);
+      })
+      .catch((error) => {
+        console.error("Error updating recipient:", error);
+        setMessage({ text: "Failed to update recipient", severity: "error" });
+        setOpenSnackbar(true);
+      });
   };
 
   return (
-    <div>
-      <h2>Edit Recipient</h2>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          name="first_name"
-          value={recipientData.first_name}
-          onChange={handleChange}
-        />
-        <input
-          type="text"
-          name="last_name"
-          value={recipientData.last_name}
-          onChange={handleChange}
-        />
-        <input
-          type="email"
-          name="email"
-          value={recipientData.email}
-          onChange={handleChange}
-        />
-        <input
-          type="text"
-          name="position"
-          value={recipientData.position}
-          onChange={handleChange}
-        />
-        <button type="submit">Save Changes</button>
-      </form>
-    </div>
+    <Container maxWidth="sm">
+      <Paper elevation={3} sx={{ padding: 3, marginTop: 4 }}>
+        <Typography variant="h5" gutterBottom>
+          Edit Recipient
+        </Typography>
+
+        <form onSubmit={handleSubmit}>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                label="First Name"
+                fullWidth
+                name="first_name"
+                value={recipientData.first_name}
+                onChange={handleChange}
+                required
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                label="Last Name"
+                fullWidth
+                name="last_name"
+                value={recipientData.last_name}
+                onChange={handleChange}
+                required
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                label="Email"
+                type="email"
+                fullWidth
+                name="email"
+                value={recipientData.email}
+                onChange={handleChange}
+                required
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                label="Position"
+                fullWidth
+                name="position"
+                value={recipientData.position}
+                onChange={handleChange}
+                required
+              />
+            </Grid>
+
+            <Grid item xs={6}>
+              <Button 
+                type="submit" 
+                variant="contained" 
+                sx={{ 
+                  width: "100%",
+                  background: "linear-gradient(135deg, #011843,rgb(127, 161, 220))", // Gradient Background
+                  color: "#fff", // White Text for contrast
+                  "&:hover": { background: "linear-gradient(135deg, #01102c,rgb(137, 174, 216))" } // Slightly darker gradient on hover
+              }}
+              >
+                Save Changes
+              </Button>
+            </Grid>
+
+            <Grid item xs={6}>
+              <Button 
+                variant="outlined" 
+                sx={{ 
+                  width: "100%",
+                  borderColor: "#011843", 
+                  color: "#011843",
+                  "&:hover": { backgroundColor: "#011843", color: "#fff" }
+                }} 
+                onClick={() => navigate("/recipient-groups")}
+              >
+                Cancel
+              </Button>
+            </Grid>
+          </Grid>
+        </form>
+      </Paper>
+
+      {/* Snackbar Notification */}
+      <Snackbar open={openSnackbar} autoHideDuration={3000} onClose={() => setOpenSnackbar(false)}>
+        <Alert severity={message.severity} onClose={() => setOpenSnackbar(false)}>
+          {message.text}
+        </Alert>
+      </Snackbar>
+    </Container>
   );
 };
 
 export default EditRecipientForm;
+
+
 
