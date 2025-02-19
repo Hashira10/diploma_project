@@ -9,7 +9,7 @@ import {
   Button,
   Snackbar,
   Alert,
-  Grid
+  Grid,
 } from "@mui/material";
 
 const EditSenderForm = () => {
@@ -114,13 +114,31 @@ const EditSenderForm = () => {
             </Grid>
 
             <Grid item xs={6}>
-              <Button type="submit" variant="contained" color="primary" fullWidth>
+              <Button 
+                type="submit" 
+                variant="contained" 
+                sx={{ 
+                  width: "100%",
+                  background: "linear-gradient(135deg, #011843,rgb(127, 161, 220))", // Gradient Background
+                  color: "#fff", // White Text for contrast
+                  "&:hover": { background: "linear-gradient(135deg, #01102c,rgb(137, 174, 216))" } // Slightly darker gradient on hover
+              }}
+              >
                 Save Changes
               </Button>
             </Grid>
 
             <Grid item xs={6}>
-              <Button variant="outlined" color="secondary" fullWidth onClick={() => navigate("/senders")}>
+              <Button 
+                variant="outlined" 
+                sx={{ 
+                  width: "100%",
+                  borderColor: "#011843", 
+                  color: "#011843",
+                  "&:hover": { backgroundColor: "#011843", color: "#fff" }
+                }} 
+                onClick={() => navigate("/senders")}
+              >
                 Cancel
               </Button>
             </Grid>

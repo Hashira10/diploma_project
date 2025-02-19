@@ -7,7 +7,8 @@ import {
   TextField,
   Button,
   Snackbar,
-  Alert
+  Alert,
+  Box
 } from "@mui/material";
 
 const AddSenderForm = () => {
@@ -82,12 +83,24 @@ const AddSenderForm = () => {
             value={smtpPassword}
             onChange={(e) => setSmtpPassword(e.target.value)}
             required
-            sx={{ marginBottom: 2 }}
+            sx={{ marginBottom: 3 }}
           />
 
-          <Button type="submit" variant="contained" color="primary" fullWidth>
-            Add Sender
-          </Button>
+          {/* Compact Button Layout with Gradient Color */}
+          <Box sx={{ display: "flex", justifyContent: "center" }}>
+            <Button 
+              type="submit" 
+              variant="contained" 
+              sx={{ 
+                width: "200px",
+                background: "linear-gradient(135deg, #011843,rgb(127, 161, 220))", // Gradient Background
+                color: "#fff", // White Text for contrast
+                "&:hover": { background: "linear-gradient(135deg, #01102c,rgb(137, 174, 216))" } // Slightly darker gradient on hover
+              }}
+            >
+              Add Sender
+            </Button>
+          </Box>
         </form>
       </Paper>
 
@@ -102,3 +115,4 @@ const AddSenderForm = () => {
 };
 
 export default AddSenderForm;
+

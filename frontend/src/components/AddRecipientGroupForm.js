@@ -129,18 +129,38 @@ const AddRecipientGroupForm = () => {
             </Paper>
           ))}
 
-          <Button
-            variant="outlined"
-            startIcon={<AddCircleIcon />}
-            onClick={addRecipient}
-            sx={{ marginTop: 2 }}
-          >
-            Add Recipient
-          </Button>
+          <Grid container spacing={2} sx={{ marginTop: 2 }}>
+            <Grid item xs={6}>
+              <Button
+                variant="outlined"
+                startIcon={<AddCircleIcon />}
+                onClick={addRecipient}
+                sx={{
+                  width: "100%",
+                  borderColor: "#011843",
+                  color: "#011843",
+                  "&:hover": { background: "linear-gradient(135deg, #011843, #bac8e0)", color: "#fff" },
+                }}
+              >
+                Add Recipient
+              </Button>
+            </Grid>
 
-          <Button type="submit" variant="contained" color="primary" fullWidth sx={{ marginTop: 3 }}>
-            Submit
-          </Button>
+            <Grid item xs={6}>
+              <Button 
+                type="submit" 
+                variant="contained" 
+                sx={{ 
+                  width: "100%",
+                  background: "linear-gradient(135deg, #011843,rgb(127, 161, 220))", // Gradient Background
+                  color: "#fff", // White Text for contrast
+                  "&:hover": { background: "linear-gradient(135deg, #01102c,rgb(137, 174, 216))" } // Slightly darker gradient on hover
+              }}
+              >
+                Submit
+              </Button>
+            </Grid>
+          </Grid>
         </form>
       </Paper>
 
@@ -155,4 +175,3 @@ const AddRecipientGroupForm = () => {
 };
 
 export default AddRecipientGroupForm;
-
