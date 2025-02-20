@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { CircularProgress, Container, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, Alert, Button, Grid } from "@mui/material";
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from "recharts";
 
 const Report = () => {
   const [groups, setGroups] = useState([]);
@@ -44,7 +44,6 @@ const Report = () => {
               .map(log => log.recipient?.id)
           );
 
-          // Получаем уникальных пользователей, которые ввели данные
           const uniqueCredentialUsers = new Set(
             credentialData
               .filter(log => groupRecipients.some(rec => rec.id === log.recipient?.id))
@@ -54,10 +53,8 @@ const Report = () => {
           groupedData[group.id] = {
             name: group.name,
             totalRecipients: groupRecipients.length,
-            uniqueClickUsers: uniqueClickUsers.size, // Количество уникальных пользователей, кликнувших по ссылке
-            uniqueCredentialUsers: uniqueCredentialUsers.size, // Количество уникальных пользователей, вводивших данные
-            clickLogs: clickData.filter(log => uniqueClickUsers.has(log.recipient?.id)),
-            credentialLogs: credentialData.filter(log => uniqueCredentialUsers.has(log.recipient?.id))
+            uniqueClickUsers: uniqueClickUsers.size,
+            uniqueCredentialUsers: uniqueCredentialUsers.size,
           };
         });
 
@@ -72,136 +69,121 @@ const Report = () => {
     fetchData();
   }, []);
 
+  const COLORS = ["#354d78", "#7f9acd"]; // ✅ Обновленные цвета графиков
+
   return (
-    <Container sx={{ marginBottom: 8 }}>
-      {loading && <CircularProgress />}
-      {error && <Alert severity="error">{error}</Alert>}
+    <Container maxWidth="lg" sx={{ marginBottom: 8 }}>
+      <Paper elevation={3} sx={{ padding: 4, marginTop: 4 }}>
+        <Typography variant="h4" align="center" sx={{ fontWeight: "bold", marginBottom: 3 }}>
+          Report Overview
+        </Typography>
 
-      {!loading && !error && (
-        <>
-          <Typography variant="h5" gutterBottom sx={{ marginTop: 4 }}>
-            Groups
-          </Typography>
-          {groups.map((group) => (
-            <Button key={group.id} variant="contained" onClick={() => setSelectedGroup(group.id)} sx={{ marginRight: 2 }}>
-              {group.name}
-            </Button>
-          ))}
+        {loading && <CircularProgress sx={{ display: "block", margin: "20px auto" }} />}
+        {error && <Alert severity="error">{error}</Alert>}
 
-          {selectedGroup && groupedLogs[selectedGroup] && (
-            <>
-              <Typography variant="h5" gutterBottom sx={{ marginTop: 4 }}>
-                Report for Group: {groupedLogs[selectedGroup].name}
-              </Typography>
+        {!loading && !error && (
+          <>
+            <Typography variant="h6" align="center" sx={{ marginBottom: 2 }}>
+              Select a Group:
+            </Typography>
+            <Grid container spacing={2} justifyContent="center">
+              {groups.map((group) => (
+                <Grid item key={group.id}>
+                  <Button
+                    variant="contained"
+                    onClick={() => setSelectedGroup(group.id)}
+                    sx={{
+                      background: "#354d78",
+                      color: "#fff",
+                      "&:hover": { background: "linear-gradient(135deg, #01102c, #9fb7d3)" }
+                    }}
+                  >
+                    {group.name}
+                  </Button>
+                </Grid>
+              ))}
+            </Grid>
 
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="h6" align="center">Unique Clicks</Typography>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={[
+            {selectedGroup && groupedLogs[selectedGroup] && (
+              <>
+                <Typography variant="h5" align="center" sx={{ marginTop: 4 }}>
+                  Report for Group: {groupedLogs[selectedGroup].name}
+                </Typography>
+
+                <Grid container spacing={3} sx={{ marginTop: 2 }}>
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle1" align="center">User Interactions</Typography>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={[
+                        { name: "Clicked", value: groupedLogs[selectedGroup].uniqueClickUsers },
+                        { name: "Not Clicked", value: groupedLogs[selectedGroup].totalRecipients - groupedLogs[selectedGroup].uniqueClickUsers },
+                        { name: "Submitted", value: groupedLogs[selectedGroup].uniqueCredentialUsers },
+                        { name: "Not Submitted", value: groupedLogs[selectedGroup].totalRecipients - groupedLogs[selectedGroup].uniqueCredentialUsers }
+                      ]}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="value" fill="#354d78" /> {/* ✅ Темно-синий цвет графика */}
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Grid>
+
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle1" align="center">Click vs Submission Distribution</Typography>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie data={[
                           { name: "Clicked", value: groupedLogs[selectedGroup].uniqueClickUsers },
-                          { name: "Not Clicked", value: groupedLogs[selectedGroup].totalRecipients - groupedLogs[selectedGroup].uniqueClickUsers }
-                        ]}
-                        cx="50%" cy="50%" outerRadius={100} fill="#8884d8"
-                        dataKey="value"
-                        label
-                      >
-                        <Cell key="clicked" fill="#82ca9d" />
-                        <Cell key="not-clicked" fill="#d0d0d0" />
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
+                          { name: "Submitted", value: groupedLogs[selectedGroup].uniqueCredentialUsers }
+                        ]} cx="50%" cy="50%" outerRadius={100} dataKey="value" label>
+                          {COLORS.map((color, index) => (
+                            <Cell key={`cell-${index}`} fill={color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </Grid>
                 </Grid>
 
-
-                <Grid item xs={12} md={6}>
-                  <Typography variant="h6" align="center">Unique Credential Submissions</Typography>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={[
-                          { name: "Submitted", value: groupedLogs[selectedGroup].uniqueCredentialUsers },
-                          { name: "Not Submitted", value: groupedLogs[selectedGroup].totalRecipients - groupedLogs[selectedGroup].uniqueCredentialUsers }
-                        ]}
-                        cx="50%" cy="50%" outerRadius={100} fill="#8884d8"
-                        dataKey="value"
-                        label
-                      >
-                        <Cell key="submitted" fill="#ff7f50" />
-                        <Cell key="not-submitted" fill="#d0d0d0" />
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </Grid>
-              </Grid>
-
-              {/* Основной отчет в виде таблицы */}
-              <Typography variant="h5" gutterBottom>
-                Click Logs
-              </Typography>
-              <TableContainer component={Paper} sx={{ marginBottom: 3 }}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell><strong>First Name</strong></TableCell>
-                      <TableCell><strong>Last Name</strong></TableCell>
-                      <TableCell><strong>Email</strong></TableCell>
-                      <TableCell><strong>Timestamp</strong></TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {groupedLogs[selectedGroup].clickLogs.map((log, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{log.recipient?.first_name || "Unknown"}</TableCell>
-                        <TableCell>{log.recipient?.last_name || "Unknown"}</TableCell>
-                        <TableCell>{log.recipient?.email || "Unknown"}</TableCell>
-                        <TableCell>{new Date(log.timestamp).toLocaleString()}</TableCell>
+                {/* ✅ Таблица отчета */}
+                <Typography variant="h6" sx={{ marginTop: 4 }}>
+                  Summary Table
+                </Typography>
+                <TableContainer component={Paper}>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell><strong>Group Name</strong></TableCell>
+                        <TableCell><strong>Total Recipients</strong></TableCell>
+                        <TableCell><strong>Clicked (%)</strong></TableCell>
+                        <TableCell><strong>Submitted (%)</strong></TableCell>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-
-              <Typography variant="h5" gutterBottom>
-                Credential Logs
-              </Typography>
-              <TableContainer component={Paper}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell><strong>First Name</strong></TableCell>
-                      <TableCell><strong>Last Name</strong></TableCell>
-                      <TableCell><strong>Email</strong></TableCell>
-                      <TableCell><strong>Timestamp</strong></TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {groupedLogs[selectedGroup].credentialLogs.map((log, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{log.recipient?.first_name || "Unknown"}</TableCell>
-                        <TableCell>{log.recipient?.last_name || "Unknown"}</TableCell>
-                        <TableCell>{log.recipient?.email || "Unknown"}</TableCell>
-                        <TableCell>{new Date(log.timestamp).toLocaleString()}</TableCell>
+                    </TableHead>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>{groupedLogs[selectedGroup].name}</TableCell>
+                        <TableCell>{groupedLogs[selectedGroup].totalRecipients}</TableCell>
+                        <TableCell>{((groupedLogs[selectedGroup].uniqueClickUsers / groupedLogs[selectedGroup].totalRecipients) * 100).toFixed(2)}%</TableCell>
+                        <TableCell>{((groupedLogs[selectedGroup].uniqueCredentialUsers / groupedLogs[selectedGroup].totalRecipients) * 100).toFixed(2)}%</TableCell>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </>
-          )}
-        </>
-      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </>
+            )}
+          </>
+        )}
+      </Paper>
     </Container>
   );
 };
 
 export default Report;
+
 
 
 
