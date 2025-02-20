@@ -8,6 +8,8 @@ import logging
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.utils.timezone import now
+from django.views.decorators.csrf import csrf_exempt
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -217,3 +219,63 @@ def get_client_ip(request):
     else:
         ip = request.META.get('REMOTE_ADDR')
     return ip
+
+
+
+@csrf_exempt
+def send_test_email(request):
+    """Отправка тестового email без сохранения отправителя в базе данных."""
+
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+
+            # Получаем SMTP-настройки и email из запроса
+            email = data.get("email")
+            smtp_host = data.get("smtp_host")
+            smtp_port = int(data.get("smtp_port"))
+            smtp_username = data.get("smtp_username")
+            smtp_password = data.get("smtp_password")
+
+            # Проверяем заполненность полей
+            if not (email and smtp_host and smtp_port and smtp_username and smtp_password):
+                return JsonResponse({"error": "All SMTP fields and recipient email are required"}, status=400)
+
+            # Логируем данные (без пароля!)
+            logger.info(f"Sending test email to {email} using SMTP {smtp_host}:{smtp_port} as {smtp_username}")
+
+            # Настройка SMTP-соединения
+            connection = get_connection(
+                backend="django.core.mail.backends.smtp.EmailBackend",
+                host=smtp_host,
+                port=smtp_port,
+                username=smtp_username,
+                password=smtp_password,
+                use_tls=smtp_port == 587,
+                use_ssl=smtp_port == 465,
+            )
+
+            # Создаем тестовое письмо
+            email_message = EmailMessage(
+                subject="Test Email",
+                body="This is a test email to verify SMTP settings.",
+                from_email=smtp_username,
+                to=[email],
+                connection=connection
+            )
+
+            # Отправляем тестовое письмо
+            result = email_message.send()
+
+            if result > 0:
+                return JsonResponse({"message": "Test email sent successfully"}, status=200)
+            else:
+                return JsonResponse({"error": "Failed to send test email"}, status=500)
+
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON format"}, status=400)
+        except Exception as e:
+            logger.error(f"Error sending test email: {str(e)}")
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Invalid request method"}, status=400)
