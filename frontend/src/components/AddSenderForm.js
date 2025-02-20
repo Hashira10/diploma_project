@@ -8,16 +8,32 @@ import {
   Button,
   Snackbar,
   Alert,
-  Box
+  IconButton,
+  InputAdornment,
+  Box,
+  Grid,
 } from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
+
 
 const AddSenderForm = () => {
   const [smtpHost, setSmtpHost] = useState("");
   const [smtpPort, setSmtpPort] = useState("");
   const [smtpUsername, setSmtpUsername] = useState("");
   const [smtpPassword, setSmtpPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [testEmail, setTestEmail] = useState(""); // Поле для тестового email
   const [message, setMessage] = useState({ text: "", severity: "info" });
   const [openSnackbar, setOpenSnackbar] = useState(false);
+
+  const toggleShowPassword = () => {
+    setShowPassword(!showPassword);
+  };
+
+  // Функция для валидации email
+  const validateEmail = (email) => {
+    return /\S+@\S+\.\S+/.test(email);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,7 +46,6 @@ const AddSenderForm = () => {
 
     try {
       await axios.post("http://127.0.0.1:8000/api/senders/", senderData);
-
       setMessage({ text: "Sender added successfully!", severity: "success" });
       setSmtpHost("");
       setSmtpPort("");
@@ -42,6 +57,31 @@ const AddSenderForm = () => {
     }
     setOpenSnackbar(true);
   };
+
+  const handleSendTestEmail = async () => {
+    if (!validateEmail(testEmail)) {
+      setMessage({ text: "Invalid email address", severity: "error" });
+      setOpenSnackbar(true);
+      return;
+    }
+  
+    try {
+      await axios.post("http://127.0.0.1:8000/api/send_test_email/", {
+        email: testEmail,
+        smtp_host: smtpHost,
+        smtp_port: smtpPort,
+        smtp_username: smtpUsername,
+        smtp_password: smtpPassword
+      });
+  
+      setMessage({ text: "Test email sent successfully!", severity: "success" });
+    } catch (error) {
+      console.error("Error sending test email:", error);
+      setMessage({ text: "Failed to send test email", severity: "error" });
+    }
+    setOpenSnackbar(true);
+  };
+  
 
   return (
     <Container maxWidth="sm">
@@ -78,29 +118,64 @@ const AddSenderForm = () => {
           />
           <TextField
             label="SMTP Password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             fullWidth
             value={smtpPassword}
             onChange={(e) => setSmtpPassword(e.target.value)}
             required
             sx={{ marginBottom: 3 }}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton onClick={toggleShowPassword} edge="end">
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
           />
 
-          {/* Compact Button Layout with Gradient Color */}
-          <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <Button 
-              type="submit" 
-              variant="contained" 
-              sx={{ 
-                width: "200px",
-                background: "linear-gradient(135deg, #011843,rgb(127, 161, 220))", // Gradient Background
-                color: "#fff", // White Text for contrast
-                "&:hover": { background: "linear-gradient(135deg, #01102c,rgb(137, 174, 216))" } // Slightly darker gradient on hover
-              }}
-            >
-              Add Sender
-            </Button>
-          </Box>
+          {/* Поле для ввода тестового email */}
+          <TextField
+            label="Test Email"
+            fullWidth
+            value={testEmail}
+            onChange={(e) => setTestEmail(e.target.value)}
+            required
+            sx={{ marginBottom: 3 }}
+          />
+
+<Grid container spacing={2} sx={{ marginTop: 2 }}>
+            <Grid item xs={6}>
+              <Button 
+                type="submit" 
+                variant="contained" 
+                sx={{ 
+                  width: "100%",
+                  background: "linear-gradient(135deg, #011843,rgb(127, 161, 220))",
+                  color: "#fff",
+                  "&:hover": { background: "linear-gradient(135deg, #01102c,rgb(137, 174, 216))" }
+                }}
+              >
+                Add Sender
+              </Button>
+            </Grid>
+
+            <Grid item xs={6}>
+              <Button 
+                variant="outlined"
+                onClick={handleSendTestEmail}
+                sx={{
+                  width: "100%",
+                  borderColor: "#011843",
+                  color: "#011843",
+                  "&:hover": { background: "linear-gradient(135deg, #011843, #bac8e0)", color: "#fff" },
+                }}
+              >
+                Send Test Email
+              </Button>
+            </Grid>
+          </Grid>
         </form>
       </Paper>
 
@@ -115,4 +190,5 @@ const AddSenderForm = () => {
 };
 
 export default AddSenderForm;
+
 

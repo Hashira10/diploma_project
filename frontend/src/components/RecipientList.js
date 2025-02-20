@@ -74,32 +74,10 @@ const RecipientList = () => {
 
   return (
     <Container maxWidth="md">
-      <Paper elevation={3} sx={{ padding: 3, marginTop: 4 }}>
-        <Typography variant="h5" gutterBottom>
-          Recipients in Group
-        </Typography>
+      
 
-        <List>
-          {recipients.map((recipient) => (
-            <ListItem key={recipient.id} divider>
-              <ListItemText
-                primary={`${recipient.first_name} ${recipient.last_name}`}
-                secondary={`${recipient.email} - ${recipient.position}`}
-              />
-              <ListItemSecondaryAction>
-                <IconButton edge="end" component={Link} to={`/edit-recipient/${recipient.id}`} color="primary">
-                  <EditIcon />
-                </IconButton>
-                <IconButton edge="end" onClick={() => handleDeleteRecipient(recipient.id)} color="error">
-                  <DeleteIcon />
-                </IconButton>
-              </ListItemSecondaryAction>
-            </ListItem>
-          ))}
-        </List>
-
-        {/* Form for Creating a New Recipient */}
-        <Paper elevation={2} sx={{ padding: 2, marginTop: 3 }}>
+      {/* Form for Creating a New Recipient */}
+      <Paper elevation={2} sx={{ padding: 2, marginTop: 3 }}>
           <Typography variant="h6">Create New Recipient</Typography>
           <Grid container spacing={1} sx={{ marginTop: 2 }}>
             <Grid item xs={6}>
@@ -163,6 +141,32 @@ const RecipientList = () => {
             </Grid>
           </Grid>
         </Paper>
+
+      <Paper elevation={3} sx={{ padding: 3, marginTop: 4, marginBottom: 4 }}>
+        <Typography variant="h5" gutterBottom>
+          Recipients in Group
+        </Typography>
+
+        <List>
+          {recipients.map((recipient) => (
+            <ListItem key={recipient.id} divider>
+              <ListItemText
+                primary={`${recipient.first_name} ${recipient.last_name}`}
+                secondary={`${recipient.email} - ${recipient.position}`}
+              />
+              <ListItemSecondaryAction>
+                <IconButton edge="end" component={Link} to={`/edit-recipient/${recipient.id}`} color="primary">
+                  <EditIcon />
+                </IconButton>
+                <IconButton edge="end" onClick={() => handleDeleteRecipient(recipient.id)} color="error">
+                  <DeleteIcon />
+                </IconButton>
+              </ListItemSecondaryAction>
+            </ListItem>
+          ))}
+        </List>
+
+        
       </Paper>
 
       {/* Snackbar Notification */}
