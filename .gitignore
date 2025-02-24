@@ -1,0 +1,48 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+api-test-venv/
+venv/
+env/
+*.env
+
+# Django-specific files
+db.sqlite3
+media/
+staticfiles/
+static/
+
+# Logs and debug files
+*.log
+debug.log
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Secrets and environment variables
+.env
+open-api.py
+*.pem
+
+# Migrations (optional, if you want to track them, remove this)
+**/migrations/**
+
+# Compiled files
+*.mo
+*.pot
+
+# Python packages
+*.egg-info/
+dist/
+build/
+pip-wheel-metadata/
+
+# Cache and temp files
+*.cache
+*.bak
