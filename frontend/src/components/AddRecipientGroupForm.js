@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import axios from "axios";
+import * as XLSX from "xlsx";
+import Papa from "papaparse";
+import { API_BASE_URL } from "../config";
 import {
   Container,
   Paper,
@@ -9,10 +12,11 @@ import {
   Grid,
   Snackbar,
   Alert,
-  IconButton
+  IconButton,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
 
 const AddRecipientGroupForm = () => {
   const [groupName, setGroupName] = useState("");
@@ -22,42 +26,99 @@ const AddRecipientGroupForm = () => {
   const [message, setMessage] = useState({ text: "", severity: "info" });
   const [openSnackbar, setOpenSnackbar] = useState(false);
 
-  const handleRecipientChange = (index, field, value) => {
-    const updatedRecipients = [...recipients];
-    updatedRecipients[index][field] = value;
-    setRecipients(updatedRecipients);
+  const validHeaders = ["firstName", "lastName", "email", "position"];
+
+  const validateHeaders = (headers) => {
+    return validHeaders.every((header) => headers.includes(header));
   };
 
-  const addRecipient = () => {
-    setRecipients([...recipients, { firstName: "", lastName: "", email: "", position: "" }]);
-  };
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
 
-  const removeRecipient = (index) => {
-    const updatedRecipients = recipients.filter((_, i) => i !== index);
-    setRecipients(updatedRecipients);
+    const reader = new FileReader();
+    reader.onload = ({ target }) => {
+      const fileData = target.result;
+      if (file.name.endsWith(".csv")) {
+        Papa.parse(fileData, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (results) => {
+            const headers = Object.keys(results.data[0] || {});
+            if (!validateHeaders(headers)) {
+              alert(
+                `Ошибка! Неверный формат файла.\n\nОжидаемый формат (CSV, XLSX):\nfirstName,lastName,email,position\n\nПример строки:\nJohn,Doe,john.doe@example.com,Manager`
+              );
+              return;
+            }
+            setRecipients(results.data);
+          },
+        });
+      } else {
+        const workbook = XLSX.read(fileData, { type: "binary" });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+        const headers = Object.keys(sheet[0] || {});
+        if (!validateHeaders(headers)) {
+          alert(
+            `Ошибка! Неверный формат файла.\n\nОжидаемый формат (CSV, XLSX):\nfirstName,lastName,email,position\n\nПример строки:\nJohn,Doe,john.doe@example.com,Manager`
+          );
+          return;
+        }
+        setRecipients(sheet);
+      }
+    };
+    reader.readAsBinaryString(file);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const groupData = {
-      name: groupName,
-      recipients: recipients.map((r) => ({
-        first_name: r.firstName,
-        last_name: r.lastName,
-        email: r.email,
-        position: r.position,
-      })),
-    };
-
-    try {
-      await axios.post("http://127.0.0.1:8000/api/recipient_groups/", groupData);
-      setMessage({ text: "Recipient group added successfully!", severity: "success" });
-      setGroupName("");
-      setRecipients([{ firstName: "", lastName: "", email: "", position: "" }]);
-    } catch (error) {
-      console.error("Error adding recipient group:", error.response?.data || error.message);
-      setMessage({ text: "Failed to add recipient group.", severity: "error" });
+  
+    // Фильтруем пустые строки
+    const filteredRecipients = recipients
+      .filter(r => r.firstName && r.lastName && r.email && r.position)
+      .map(r => ({
+        first_name: r.firstName.trim(),
+        last_name: r.lastName.trim(),
+        email: r.email.trim(),
+        position: r.position.trim(),
+      }));
+  
+    // Проверка на заполненные данные
+    if (!groupName.trim()) {
+      setMessage({ text: "Введите название группы", severity: "error" });
+      setOpenSnackbar(true);
+      return;
     }
+    if (filteredRecipients.length === 0) {
+      setMessage({ text: "Добавьте хотя бы одного получателя", severity: "error" });
+      setOpenSnackbar(true);
+      return;
+    }
+  
+    // Формируем данные для API
+    const groupData = {
+      name: groupName.trim(), // Исправлено: API ожидает "name"
+      recipients: filteredRecipients,
+    };
+  
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/recipient_groups/`, groupData, {
+        headers: { "Content-Type": "application/json" },
+      });
+  
+      if (response.status === 201 || response.status === 200) {
+        setMessage({ text: "Группа получателей успешно добавлена!", severity: "success" });
+        setGroupName("");
+        setRecipients([{ firstName: "", lastName: "", email: "", position: "" }]);
+      } else {
+        throw new Error("Ошибка при отправке данных");
+      }
+    } catch (error) {
+      console.error("Ошибка запроса:", error.response?.data || error.message);
+      setMessage({ text: `Ошибка: ${error.response?.data?.message || "Не удалось добавить группу"}`, severity: "error" });
+    }
+  
     setOpenSnackbar(true);
   };
 
@@ -70,13 +131,30 @@ const AddRecipientGroupForm = () => {
 
         <form onSubmit={handleSubmit}>
           <TextField
-            label="Group Name"
+            label="Название группы"
             fullWidth
             value={groupName}
             onChange={(e) => setGroupName(e.target.value)}
             required
             sx={{ marginBottom: 2 }}
           />
+
+          <Button
+            variant="outlined"
+            component="label"
+            startIcon={<UploadFileIcon />}
+            sx={{
+              width: "100%",
+              height: "40px",
+              borderColor: "#011843",
+              color: "#011843",
+              "&:hover": { background: "#011843", color: "#fff" },
+              marginBottom: 2,
+            }}
+          >
+            Upload Recipient List
+            <input type="file" hidden accept=".csv, .xlsx, .xls" onChange={handleFileUpload} />
+          </Button>
 
           <Typography variant="h6">Recipients</Typography>
 
@@ -88,7 +166,11 @@ const AddRecipientGroupForm = () => {
                     label="First Name"
                     fullWidth
                     value={recipient.firstName}
-                    onChange={(e) => handleRecipientChange(index, "firstName", e.target.value)}
+                    onChange={(e) => {
+                      const newRecipients = [...recipients];
+                      newRecipients[index].firstName = e.target.value;
+                      setRecipients(newRecipients);
+                    }}
                     required
                   />
                 </Grid>
@@ -97,7 +179,11 @@ const AddRecipientGroupForm = () => {
                     label="Last Name"
                     fullWidth
                     value={recipient.lastName}
-                    onChange={(e) => handleRecipientChange(index, "lastName", e.target.value)}
+                    onChange={(e) => {
+                      const newRecipients = [...recipients];
+                      newRecipients[index].lastName = e.target.value;
+                      setRecipients(newRecipients);
+                    }}
                     required
                   />
                 </Grid>
@@ -107,7 +193,11 @@ const AddRecipientGroupForm = () => {
                     type="email"
                     fullWidth
                     value={recipient.email}
-                    onChange={(e) => handleRecipientChange(index, "email", e.target.value)}
+                    onChange={(e) => {
+                      const newRecipients = [...recipients];
+                      newRecipients[index].email = e.target.value;
+                      setRecipients(newRecipients);
+                    }}
                     required
                   />
                 </Grid>
@@ -116,12 +206,22 @@ const AddRecipientGroupForm = () => {
                     label="Position"
                     fullWidth
                     value={recipient.position}
-                    onChange={(e) => handleRecipientChange(index, "position", e.target.value)}
+                    onChange={(e) => {
+                      const newRecipients = [...recipients];
+                      newRecipients[index].position = e.target.value;
+                      setRecipients(newRecipients);
+                    }}
                     required
                   />
                 </Grid>
                 <Grid item xs={2} sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <IconButton onClick={() => removeRecipient(index)} color="error">
+                  <IconButton
+                    onClick={() => {
+                      const newRecipients = recipients.filter((_, i) => i !== index);
+                      setRecipients(newRecipients);
+                    }}
+                    color="error"
+                  >
                     <DeleteIcon />
                   </IconButton>
                 </Grid>
@@ -134,27 +234,28 @@ const AddRecipientGroupForm = () => {
               <Button
                 variant="outlined"
                 startIcon={<AddCircleIcon />}
-                onClick={addRecipient}
+                onClick={() =>
+                  setRecipients([...recipients, { firstName: "", lastName: "", email: "", position: "" }])
+                }
                 sx={{
                   width: "100%",
+                  height: "40px",
                   borderColor: "#011843",
                   color: "#011843",
-                  "&:hover": { background: "linear-gradient(135deg, #011843, #bac8e0)", color: "#fff" },
+                  "&:hover": { background: "#011843", color: "#fff" },
                 }}
               >
-                Add Recipient
+                Add recipient
               </Button>
             </Grid>
-
             <Grid item xs={6}>
-              <Button 
-                type="submit" 
-                variant="contained" 
-                sx={{ 
-                  width: "100%",
-                  background: "linear-gradient(135deg, #011843,rgb(127, 161, 220))", // Gradient Background
-                  color: "#fff", // White Text for contrast
-                  "&:hover": { background: "linear-gradient(135deg, #01102c,rgb(137, 174, 216))" } // Slightly darker gradient on hover
+              <Button type="submit" variant="contained"
+              sx={{ 
+                width: "100%",
+                height: "40px",
+                background: "linear-gradient(135deg, #011843, #bac8e0)",
+                color: "#fff",
+                "&:hover": { background: "linear-gradient(135deg, #01102c, #9fb7d3)" }
               }}
               >
                 Submit
@@ -163,15 +264,9 @@ const AddRecipientGroupForm = () => {
           </Grid>
         </form>
       </Paper>
-
-      {/* Snackbar Notification */}
-      <Snackbar open={openSnackbar} autoHideDuration={3000} onClose={() => setOpenSnackbar(false)}>
-        <Alert severity={message.severity} onClose={() => setOpenSnackbar(false)}>
-          {message.text}
-        </Alert>
-      </Snackbar>
     </Container>
   );
 };
 
 export default AddRecipientGroupForm;
+
