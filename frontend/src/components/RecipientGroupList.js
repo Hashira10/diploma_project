@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from '../config';
 import {
   Container,
   Paper,
@@ -14,7 +15,6 @@ import {
   Alert,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
-import GroupIcon from "@mui/icons-material/Group";
 
 const RecipientGroupList = () => {
   const [recipientGroups, setRecipientGroups] = useState([]);
@@ -23,7 +23,7 @@ const RecipientGroupList = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios.get("http://127.0.0.1:8000/api/recipient_groups/")
+    axios.get(API_BASE_URL + '/api/recipient_groups/')
       .then(response => setRecipientGroups(response.data))
       .catch(error => console.error("Error fetching recipient groups:", error));
   }, []);
@@ -34,7 +34,7 @@ const RecipientGroupList = () => {
 
   const handleDeleteGroup = (groupId) => {
     if (window.confirm("Are you sure you want to delete this group?")) {
-      axios.delete(`http://127.0.0.1:8000/api/recipient_groups/${groupId}/`)
+      axios.delete(`${API_BASE_URL}/api/recipient_groups/${groupId}/`)
         .then(() => {
           setRecipientGroups(prevGroups => prevGroups.filter(group => group.id !== groupId));
           setMessage({ text: "Group deleted successfully!", severity: "success" });
@@ -70,7 +70,6 @@ const RecipientGroupList = () => {
         </List>
       </Paper>
 
-      {/* Snackbar Notification */}
       <Snackbar open={openSnackbar} autoHideDuration={3000} onClose={() => setOpenSnackbar(false)}>
         <Alert severity={message.severity} onClose={() => setOpenSnackbar(false)}>
           {message.text}

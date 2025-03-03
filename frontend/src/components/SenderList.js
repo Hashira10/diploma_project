@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
+import { API_BASE_URL } from '../config';
 import {
   Container,
   Paper,
@@ -23,7 +24,7 @@ const SenderList = () => {
 
   useEffect(() => {
     axios
-      .get("http://127.0.0.1:8000/api/senders/")
+      .get(`${API_BASE_URL}/api/senders/`)
       .then((response) => setSenders(response.data))
       .catch((error) => {
         console.error("Error fetching senders:", error);
@@ -34,7 +35,7 @@ const SenderList = () => {
 
   const handleDeleteSender = (senderId) => {
     axios
-      .delete(`http://127.0.0.1:8000/api/senders/${senderId}/`)
+      .delete(`${API_BASE_URL}/api/senders/${senderId}/`)
       .then(() => {
         setSenders(senders.filter((sender) => sender.id !== senderId));
         setMessage({ text: "Sender deleted successfully!", severity: "success" });
@@ -78,7 +79,6 @@ const SenderList = () => {
         </List>
       </Paper>
 
-      {/* Snackbar Notification */}
       <Snackbar open={openSnackbar} autoHideDuration={3000} onClose={() => setOpenSnackbar(false)}>
         <Alert severity={message.severity} onClose={() => setOpenSnackbar(false)}>
           {message.text}

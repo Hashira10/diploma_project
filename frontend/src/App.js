@@ -7,7 +7,7 @@ import EditSenderForm from "./components/EditSenderForm";
 import RecipientGroupList from "./components/RecipientGroupList";
 import RecipientList from "./components/RecipientList";
 import EditRecipientForm from "./components/EditRecipientForm";
-import SendMessageForm from "./components/SendMessageForm"; 
+import Campaigns from "./components/Campaigns"; 
 import Report from "./components/Report";
 import "./App.css";
 
@@ -19,11 +19,9 @@ const App = () => {
   );
 };
 
-// Компонент для основного макета с динамическим заголовком
 const MainLayout = () => {
   const location = useLocation();
 
-  // Функция для изменения заголовка в зависимости от маршрута
   const getPageTitle = () => {
     switch (location.pathname) {
       case "/":
@@ -37,17 +35,17 @@ const MainLayout = () => {
       case "/recipient-groups":
         return "Recipient Group List";
       case "/send-message":
-        return "Send Message";
+        return "Campaigns";
       case "/report":
         return "Report";
       default:
-        return "Email System"; // Заголовок по умолчанию
+        return "Email System";
     }
   };
 
   return (
     <div>
-      <h1>{getPageTitle()}</h1> {/* Динамический заголовок */}
+      <h1>{getPageTitle()}</h1>
       
       <nav>
         <ul>
@@ -55,7 +53,7 @@ const MainLayout = () => {
           <li><Link to="/senders">Sender List</Link></li>
           <li><Link to="/add-recipient-group">Add Recipient Group</Link></li>
           <li><Link to="/recipient-groups">Recipient Group List</Link></li>
-          <li><Link to="/send-message">Send Message</Link></li> 
+          <li><Link to="/send-message">Campaigns</Link></li> 
           <li><Link to="/report">Report</Link></li>
         </ul>
       </nav>
@@ -68,7 +66,7 @@ const MainLayout = () => {
         <Route path="/recipient-groups" element={<RecipientGroupList />} />
         <Route path="/recipient-groups/:groupId" element={<RecipientList />} />
         <Route path="/edit-recipient/:recipientId" element={<EditRecipientForm />} />
-        <Route path="/send-message" element={<SendMessageForm />} /> 
+        <Route path="/send-message" element={<Campaigns />} /> 
         <Route path="/report" element={<Report />} />
       </Routes>
     </div>

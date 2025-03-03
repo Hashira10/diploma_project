@@ -74,7 +74,6 @@ const AddRecipientGroupForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
   
-    // Фильтруем пустые строки
     const filteredRecipients = recipients
       .filter(r => r.firstName && r.lastName && r.email && r.position)
       .map(r => ({
@@ -84,7 +83,7 @@ const AddRecipientGroupForm = () => {
         position: r.position.trim(),
       }));
   
-    // Проверка на заполненные данные
+    
     if (!groupName.trim()) {
       setMessage({ text: "Введите название группы", severity: "error" });
       setOpenSnackbar(true);
@@ -96,9 +95,8 @@ const AddRecipientGroupForm = () => {
       return;
     }
   
-    // Формируем данные для API
     const groupData = {
-      name: groupName.trim(), // Исправлено: API ожидает "name"
+      name: groupName.trim(), 
       recipients: filteredRecipients,
     };
   

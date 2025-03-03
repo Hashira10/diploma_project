@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useParams, Link } from "react-router-dom";
+import { API_BASE_URL } from '../config';
 import {
   Container,
   Paper,
@@ -28,7 +29,7 @@ const RecipientList = () => {
   const [openSnackbar, setOpenSnackbar] = useState(false);
 
   useEffect(() => {
-    axios.get(`http://127.0.0.1:8000/api/recipient_groups/${groupId}/`)
+    axios.get(`${API_BASE_URL}/api/recipient_groups/${groupId}/`)
       .then(response => setRecipients(response.data.recipients))
       .catch(error => console.error("Error fetching recipients:", error));
   }, [groupId]);
@@ -40,10 +41,10 @@ const RecipientList = () => {
       return;
     }
 
-    axios.post("http://127.0.0.1:8000/api/recipients/", newRecipient)
+    axios.post(`${API_BASE_URL}/api/recipients/`, newRecipient)
       .then(response => {
         const createdRecipient = response.data;
-        return axios.post(`http://127.0.0.1:8000/api/recipient_groups/${groupId}/add_recipient/`, { recipient_id: createdRecipient.id });
+        return axios.post(`${API_BASE_URL}/api/recipient_groups/${groupId}/add_recipient/`, { recipient_id: createdRecipient.id });
       })
       .then(() => {
         setRecipients(prevRecipients => [...prevRecipients, newRecipient]);
@@ -59,7 +60,7 @@ const RecipientList = () => {
   };
 
   const handleDeleteRecipient = (recipientId) => {
-    axios.delete(`http://127.0.0.1:8000/api/recipients/${recipientId}/`)
+    axios.delete(`${API_BASE_URL}/api/recipients/${recipientId}/`)
       .then(() => {
         setRecipients(recipients.filter(recipient => recipient.id !== recipientId));
         setMessage({ text: "Recipient deleted successfully!", severity: "success" });
@@ -74,9 +75,7 @@ const RecipientList = () => {
 
   return (
     <Container maxWidth="md">
-      
 
-      {/* Form for Creating a New Recipient */}
       <Paper elevation={2} sx={{ padding: 2, marginTop: 3 }}>
           <Typography variant="h6">Create New Recipient</Typography>
           <Grid container spacing={1} sx={{ marginTop: 2 }}>
@@ -126,12 +125,12 @@ const RecipientList = () => {
                 <Button 
                   variant="contained" 
                   sx={{ 
-                    width: "180px", // Smaller Button
-                    height: "36px", // Reduced Height
-                    fontSize: "0.875rem", // Smaller Font
-                    background: "linear-gradient(135deg, #011843,rgb(127, 161, 220))", // Gradient Background
-                    color: "#fff", // White Text for contrast
-                    "&:hover": { background: "linear-gradient(135deg, #01102c,rgb(137, 174, 216))" } // Slightly darker gradient on hover
+                    width: "180px", 
+                    height: "36px", 
+                    fontSize: "0.875rem",
+                    background: "linear-gradient(135deg, #011843,rgb(127, 161, 220))", 
+                    color: "#fff",
+                    "&:hover": { background: "linear-gradient(135deg, #01102c,rgb(137, 174, 216))" } 
               }}
                   onClick={handleCreateRecipient}
                 >
@@ -169,7 +168,6 @@ const RecipientList = () => {
         
       </Paper>
 
-      {/* Snackbar Notification */}
       <Snackbar open={openSnackbar} autoHideDuration={3000} onClose={() => setOpenSnackbar(false)}>
         <Alert severity={message.severity} onClose={() => setOpenSnackbar(false)}>
           {message.text}
