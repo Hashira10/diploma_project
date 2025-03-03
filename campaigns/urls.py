@@ -19,7 +19,6 @@ schema_view = get_schema_view(
     permission_classes=(permissions.AllowAny,),
 )
 
-
 router = DefaultRouter()
 router.register(r'senders', SenderViewSet)
 router.register(r'recipient_groups', RecipientGroupViewSet)
@@ -28,12 +27,11 @@ router.register(r'messages', MessageViewSet)
 router.register(r'click_logs', ClickLogViewSet)
 router.register(r'credential_logs', CredentialLogViewSet)
 
-
 urlpatterns = [
     path('api/', include(router.urls)), 
-    path("track/<int:recipient_id>/", track_click, name="track_click"),
-    path("capture/<int:recipient_id>/", capture_credentials, name="capture_credentials"),
-    path("email-template/<int:recipient_id>/", login_template_view, name="email_template"),
+    path("track/<int:recipient_id>/<int:message_id>/", track_click, name="track_click"),
+    path("capture/<int:recipient_id>/<int:message_id>/", capture_credentials, name="capture_credentials"),
+    path("email-template/<int:recipient_id>/<int:message_id>/", login_template_view, name="email_template"),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),

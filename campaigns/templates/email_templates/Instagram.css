@@ -1,0 +1,85 @@
+body{
+    background-color: #fafafa;
+    height: 96vh;
+    margin: 32px 0px 0px 45px;
+    font-family: -apple-system, SegeoUI, "Roboto Thin", Helvetica, Arial, sans-serif;
+}
+.left{
+    height:590px;
+    width: 430px;
+    background-image: url(https://www.instagram.com/static/images/homepage/phones/home-phones.png/1dc085cdb87d.png);
+    background-repeat: no-repeat;
+    transform: scale(1.01);
+    margin-right: 470px;
+    margin-top: -22px;
+}
+.left>img {
+    position: relative;
+    width: 250px;
+    margin: 24px 0px 0px 156px;
+}
+.right{
+    margin-top: -130px;
+
+}
+#info{
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-content: center;
+    align-items: stretch;
+    justify-content: center;
+    width: 265px;
+    height: 320px;
+    background-color: white;
+    border: 1px solid rgb(219,219,219);
+    padding: 40px;
+    /*position: relative;*/
+    margin-left: -440px;
+    margin-top: 24px;
+}
+.right img{
+    padding: 2px 70px 30px 70px;
+    width: 180px;
+    position: relative;
+    margin-left: -30px;
+    margin-top: 15px;
+}
+input{
+    all: unset;
+    padding: 12px;
+    border: 1px solid rgb(219,219,219);
+    margin-top: 5px;
+    font-size: 12px;
+}
+#enter-button{
+    background-color: rgb(77,181,249);
+    text-align: center;
+    color: white;
+    padding: 7px;
+    margin-top: 10px;
+    border-radius: 5px;
+    font-size: 14px;
+}
+#log-in-part{
+    display: flex;
+    margin-top: 18px;
+    flex-direction: row;
+    align-items: center;
+}
+.navbar{
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    text-align: center;
+    justify-content: space-around;
+    width: 1000px;
+    margin-left: -1000px;
+    margin-top: 740px;
+    font-size: 13px;
+}
+.navbar span{
+    color: gray;
+    padding: 10px;
+}
+
