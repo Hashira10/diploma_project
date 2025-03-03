@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { API_BASE_URL } from '../config';
 import {
   Container,
   Paper,
@@ -10,7 +11,6 @@ import {
   Alert,
   IconButton,
   InputAdornment,
-  Box,
   Grid,
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
@@ -22,7 +22,7 @@ const AddSenderForm = () => {
   const [smtpUsername, setSmtpUsername] = useState("");
   const [smtpPassword, setSmtpPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [testEmail, setTestEmail] = useState(""); // Поле для тестового email
+  const [testEmail, setTestEmail] = useState(""); 
   const [message, setMessage] = useState({ text: "", severity: "info" });
   const [openSnackbar, setOpenSnackbar] = useState(false);
 
@@ -30,7 +30,6 @@ const AddSenderForm = () => {
     setShowPassword(!showPassword);
   };
 
-  // Функция для валидации email
   const validateEmail = (email) => {
     return /\S+@\S+\.\S+/.test(email);
   };
@@ -45,7 +44,7 @@ const AddSenderForm = () => {
     };
 
     try {
-      await axios.post("http://127.0.0.1:8000/api/senders/", senderData);
+      await axios.post(`${API_BASE_URL}/api/senders/`, senderData);
       setMessage({ text: "Sender added successfully!", severity: "success" });
       setSmtpHost("");
       setSmtpPort("");
@@ -66,7 +65,7 @@ const AddSenderForm = () => {
     }
   
     try {
-      await axios.post("http://127.0.0.1:8000/api/send_test_email/", {
+      await axios.post(`${API_BASE_URL}/api/send_test_email/`, {
         email: testEmail,
         smtp_host: smtpHost,
         smtp_port: smtpPort,
@@ -84,7 +83,7 @@ const AddSenderForm = () => {
   
 
   return (
-    <Container maxWidth="sm">
+    <Container maxWidth="sm" sx={{ marginBottom: 6 }}>
       <Paper elevation={3} sx={{ padding: 3, marginTop: 4 }}>
         <Typography variant="h5" gutterBottom>
           Add Sender
@@ -135,7 +134,6 @@ const AddSenderForm = () => {
             }}
           />
 
-          {/* Поле для ввода тестового email */}
           <TextField
             label="Test Email"
             fullWidth
@@ -179,7 +177,6 @@ const AddSenderForm = () => {
         </form>
       </Paper>
 
-      {/* Snackbar Notification */}
       <Snackbar open={openSnackbar} autoHideDuration={3000} onClose={() => setOpenSnackbar(false)}>
         <Alert severity={message.severity} onClose={() => setOpenSnackbar(false)}>
           {message.text}

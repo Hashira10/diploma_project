@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
+import { API_BASE_URL } from '../config';
 import {
   Container,
   Paper,
@@ -26,7 +27,7 @@ const EditRecipientForm = () => {
 
   useEffect(() => {
     axios
-      .get(`http://127.0.0.1:8000/api/recipients/${recipientId}/`)
+      .get(`${API_BASE_URL}/api/recipients/${recipientId}/`)
       .then((response) => {
         setRecipientData(response.data);
       })
@@ -45,7 +46,7 @@ const EditRecipientForm = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     axios
-      .put(`http://127.0.0.1:8000/api/recipients/${recipientId}/`, recipientData)
+      .put(`${API_BASE_URL}/api/recipients/${recipientId}/`, recipientData)
       .then(() => {
         setMessage({ text: "Recipient updated successfully!", severity: "success" });
         setOpenSnackbar(true);
@@ -118,9 +119,9 @@ const EditRecipientForm = () => {
                 variant="contained" 
                 sx={{ 
                   width: "100%",
-                  background: "linear-gradient(135deg, #011843,rgb(127, 161, 220))", // Gradient Background
-                  color: "#fff", // White Text for contrast
-                  "&:hover": { background: "linear-gradient(135deg, #01102c,rgb(137, 174, 216))" } // Slightly darker gradient on hover
+                  background: "linear-gradient(135deg, #011843,rgb(127, 161, 220))",
+                  color: "#fff", 
+                  "&:hover": { background: "linear-gradient(135deg, #01102c,rgb(137, 174, 216))" } 
               }}
               >
                 Save Changes
@@ -145,7 +146,6 @@ const EditRecipientForm = () => {
         </form>
       </Paper>
 
-      {/* Snackbar Notification */}
       <Snackbar open={openSnackbar} autoHideDuration={3000} onClose={() => setOpenSnackbar(false)}>
         <Alert severity={message.severity} onClose={() => setOpenSnackbar(false)}>
           {message.text}
