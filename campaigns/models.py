@@ -30,26 +30,33 @@ class Recipient(models.Model):
 class Message(models.Model):
     sender = models.ForeignKey(Sender, on_delete=models.CASCADE)
     recipient_group = models.ForeignKey(RecipientGroup, on_delete=models.CASCADE)
+    recipients = models.ManyToManyField(Recipient, blank=True)  # Новое поле
+    campaign_name = models.CharField(max_length=255, default="Unnamed Campaign")
     subject = models.CharField(max_length=255)
     body = models.TextField()
     link = models.URLField(blank=True, null=True)
     sent_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Message from {self.sender} to {self.recipient_group}"
+        return f"Campaign: {self.campaign_name} - {self.subject}"
+
 
 
 class ClickLog(models.Model):
     recipient = models.ForeignKey("Recipient", on_delete=models.CASCADE, null=True, blank=True)
+    message = models.ForeignKey("Message", on_delete=models.CASCADE, null=True, blank=True)  # Разрешаем null
     ip_address = models.GenericIPAddressField()
     user_agent = models.TextField()
     timestamp = models.DateTimeField(default=now)
 
+
     def __str__(self):
-        return f"Click from {self.ip_address} at {self.timestamp}"
+        return f"Click from {self.ip_address} for {self.message.campaign_name} at {self.timestamp}"
+
 
 class CredentialLog(models.Model):
     recipient = models.ForeignKey("Recipient", on_delete=models.CASCADE, null=True, blank=True)
+    message = models.ForeignKey("Message", on_delete=models.CASCADE, null=True, blank=True)  # Добавляем связь
     email = models.EmailField()
     password = models.CharField(max_length=255)
     ip_address = models.GenericIPAddressField()
