@@ -15,8 +15,6 @@ from decouple import config
 import os
 
 
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -44,6 +42,8 @@ INSTALLED_APPS = [
     'campaigns',
     'rest_framework',
     'corsheaders',
+    'drf_yasg',
+    'django_extensions',
 ]
 
 MIDDLEWARE = [
@@ -58,7 +58,7 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000', 
+    'http://192.168.81.145:3000', 
 ]
 
 ROOT_URLCONF = 'phishing_platform.urls'
@@ -93,7 +93,7 @@ DATABASES = {
         'USER': config('DB_USER'),
         'PASSWORD': config('DB_PASSWORD'),
         'HOST': config('DB_HOST'),
-        'PORT': config('DB_PORT', default=5432, cast=int),  # Если PORT не указан, используется 5432
+        'PORT': config('DB_PORT', default=5432, cast=int),
     }
 }
 
@@ -139,4 +139,10 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-BASE_URL = "http://127.0.0.1:8000"
+BASE_URL = "http://192.168.81.145:8000"
+
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+ALLOWED_HOSTS = ['192.168.81.145', '10.10.42.215']
