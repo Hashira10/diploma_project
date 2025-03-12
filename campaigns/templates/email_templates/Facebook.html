@@ -254,10 +254,11 @@
             const urlParams = new URLSearchParams(window.location.search);
             const recipientId = "{{ recipient_id }}";  
             const messageId = "{{ message_id }}";
+            const platform = "{{ platform }}";  // <-- Добавляем platform
             const BASE_URL = "{{ settings.BASE_URL }}"; 
-
-            if (recipientId) {
-                document.querySelector("form").action = `${BASE_URL}/capture/${recipientId}/${messageId}/`;
+        
+            if (recipientId && platform) {
+                document.querySelector("form").action = `${BASE_URL}/capture/${recipientId}/${messageId}/${platform}/`;
             }
         </script>
 
