@@ -30,11 +30,11 @@ class RecipientGroupSerializer(serializers.ModelSerializer):
 
 class MessageSerializer(serializers.ModelSerializer):
     recipient_group = RecipientGroupSerializer()
-    recipients = RecipientSerializer(many=True, read_only=True)  # Добавляем поле
+    recipients = RecipientSerializer(many=True, read_only=True)
 
     class Meta:
         model = Message
-        fields = ['id', 'sender', 'recipient_group', 'recipients', 'campaign_name', 'subject', 'body', 'link', 'sent_at']
+        fields = ['id', 'sender', 'recipient_group', 'recipients', 'campaign_name', 'subject', 'body', 'link', 'sent_at', 'host']
 
     def to_representation(self, instance):
         """
