@@ -13,7 +13,11 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 from decouple import config
 import os
+from dotenv import load_dotenv
 
+load_dotenv()
+
+OPEN_AI_API_KEY = os.getenv("OPEN_AI_API_KEY")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -58,7 +62,8 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    'http://192.168.81.145:3000', 
+    "http://localhost:3000",
+    'http://192.168.81.145:3000',
 ]
 
 ROOT_URLCONF = 'phishing_platform.urls'
@@ -145,4 +150,4 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
-ALLOWED_HOSTS = ['192.168.81.145', '10.10.42.215']
+ALLOWED_HOSTS = ['192.168.81.145', '10.10.42.215', '127.0.0.1']
