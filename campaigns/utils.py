@@ -1,10 +1,7 @@
-import os
-
 from openai import OpenAI
 
-
 def generate_phishing_email(prompt):
-    client = OpenAI(api_key=os.getenv("OPEN_AI_API_KEY"))
+    client = OpenAI(api_key="your_api_key")
 
     response = client.chat.completions.create(
         model="gpt-4o-mini",
